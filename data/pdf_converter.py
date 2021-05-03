@@ -8,7 +8,8 @@ files = {2009:{"2009_roster.pdf":863}, 2010:{"2010_roster.pdf":690},
          2013:{"2013_roster.pdf":763}}
 
 def read_and_convert(file_name, pages_string):
-        tables = camelot.read_pdf(file_name, pages=pages_string)
+        tables = camelot.read_pdf(file_name, pages=pages_string,
+                                  flavor='stream')
         df = tables[0].df
         for table in tables[1:]:
             df = pd.concat([df, table.df], ignore_index=True)
@@ -28,8 +29,12 @@ def convert_pdfs(file_dict):
             pages_string = str(next_start_page) + '-' + str(end_page)
             print(f"reading pdf pages {pages_string}")
             df = read_and_convert(file_name, pages_string)
+            # if end_page <= 50:
+            #     df.drop(0, inplace=True)
             df.columns = df.iloc[0]
+            print(df.iloc[0])
             removal_term = df.iloc[0,2]
+
             df = df[df[removal_term] != removal_term]
             next_df = pd.concat([next_df, df])
             if end_page == pages:
