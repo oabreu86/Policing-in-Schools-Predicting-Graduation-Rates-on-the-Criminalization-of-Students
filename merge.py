@@ -15,7 +15,7 @@ IDTYPES = {"six_sch_id": "School ID", "four_sch_id": "Unit_2",
 
 def merging(df1, df2, df2_colname,df3, df3_colname, df4, df4_colname, 
             idtype="six_sch_id"):
-    df3["Year"] = df3["Year"] + 1
+    df3["School Year"] = df3["School Year"] + 1
     sub_pd = df1.merge(df2, how='left', left_on=[IDTYPES[idtype], "Year"],
                        right_on=df2_colname)
     sub_pd = sub_pd.merge(df4, how='left', left_on=[IDTYPES[idtype], "Year"],
