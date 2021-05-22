@@ -1,8 +1,8 @@
 import pandas as pd
 # to do: restrict to high schools
-DATA_FILES = {"iep_2010.xls" : 2010,
-              "iep_2011.xls": 2011, "iep_2012.xls": 2012,
-              "iep_2013.xls": 2013, "iep_2014.xls": 2014}
+DATA_FILES = {"iep_2011.xls": 2010, "iep_2012.xls": 2011,
+              "iep_2013.xls": 2012, "iep_2014.xls": 2013, 
+              "iep_2015.xls": 2014}
 
 def read_data(file, filetype):
     if filetype == "csv":
@@ -16,9 +16,6 @@ def read_data(file, filetype):
 
 
 def combine_dfs():
-    ten = read_data("iep_2010.xls", "xls")
-    print(ten.sample())
-    ten = ten.drop(['Area'], axis=1)
     eleven = read_data("iep_2011.xls", "xls")
     eleven = eleven.drop(['Area'], axis=1)
     twelve = read_data("iep_2012.xls", "xls")
@@ -33,7 +30,11 @@ def combine_dfs():
     fourteen = fourteen.drop(["Network"], axis=1) \
                        .rename({"Educational Unit Name": "School",
                        "School ID": "Unit"}, axis=1)
-    data = (ten, eleven, twelve, thirteen, fourteen)
+    fifteen = read_data("iep_2015.xls", "xls")
+    fifteen = fifteen.drop(["Networks"], axis=1) \
+                       .rename({"Educational Unit Name": "School",
+                       "School ID": "Unit"}, axis=1)
+    data = (eleven, twelve, thirteen, fourteen, fifteen)
     return pd.concat(data)
 
 
