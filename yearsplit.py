@@ -21,14 +21,16 @@ class TimeBasedCV(object):
     '''
     
     
-    def __init__(self, train_period=16, test_period=8, freq='months'):
+    def __init__(self, train_period=12, test_period=12, 
+                 freq='months'):
         self.train_period = train_period
         self.test_period = test_period
         self.freq = freq
 
         
         
-    def split(self, data, validation_split_date=None, date_column='record_date', gap=6):
+    def split(self, data, validation_split_date=None, 
+              date_column='record_date', gap=0):
         '''
         Generate indices to split data into training and test set
         
