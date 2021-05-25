@@ -217,14 +217,11 @@ def evaluate(target_test, target_predict):
     
     Returns tuple of Precision, Recall, F1 Score and Accuracy
     '''
-    precision = precision_score(target_test, target_predict)
-    recall = recall_score(target_test, target_predict)
-    f1 = f1_score(target_test, target_predict)
-    accuracy = accuracy_score(target_test, target_predict)
-    return precision, recall, f1, accuracy
+    MSE = metrics.mean_squared_error(target_test, target_predict)
+    return MSE
 
 
-def gridsearch(train_set, test_set, models, grid, outcome, model_time=False):
+def gridsearch(cv, models, grid, outcome, model_time=False):
     '''
     For each model and possible parameters provided, builds the model and then 
     evaluates the model's prediction on the test set
@@ -244,24 +241,28 @@ def gridsearch(train_set, test_set, models, grid, outcome, model_time=False):
     results = dict()
 
     for model_key in models.keys(): 
-        # Loop over parameters 
-        for params in grid[model_key]: 
-            print("Training model:", model_key, "|", params)
-            # Create model 
-            model = models[model_key]
-            train_features = train_set.drop(outcome, axis=1)
-            train_target = train_set[outcome]
-            build_classifier(model, train_features, params, train_target,
-                             model_time)
-            # Predict on testing set 
-            target_predict = model.predict(test_set.drop(outcome, axis=1))
-            # Evaluate predictions 
-            results[model_key + " | " + str(params)] = evaluate(test_set[outcome],
-                                                                target_predict)
-    results = pd.DataFrame.from_dict(results, orient="index", 
-                                     columns=["Precision", "Recall", 
-                                              "F1", "Accuracy"])
+        results[model_key] = dict()
+        for num, case in enumerate(cv):
+            train_set, test_set = case[0], case[1]
+            results[model_key][num] = dict()
+            # Loop over parameters 
+            for n, params in enumerate(grid[model_key]): 
+                print("Training model:", model_key, "|", params, num)
+                # Create model 
+                model = models[model_key]
+                train_features = train_set.drop(["Year", "School Name_x", outcome], axis=1)
+                train_target = train_set.loc[:, outcome]
+                build_classifier(model, train_features, params, train_target,
+                                model_time)
+                # Predict on testing set 
+                target_predict = model.predict(test_set.drop(["Year", "School Name_x", outcome], axis=1))
+                target_true = test_set.loc[:, outcome]
+                # Evaluate predictions 
+                r2score = evaluate(target_true, target_predict)
+                results[model_key][num][n] = r2score
+                print(results)
+    # results = pd.DataFrame.from_dict(results, orient="index")
     # End timer
     stop = datetime.datetime.now()
     print("Time Elapsed:", stop - start)
-    return results.sort_values("Accuracy" , ascending=False)
+    return results
