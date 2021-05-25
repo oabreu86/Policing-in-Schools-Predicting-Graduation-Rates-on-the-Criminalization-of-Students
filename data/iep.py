@@ -2,7 +2,7 @@ import pandas as pd
 # to do: restrict to high schools
 DATA_FILES = {"iep_2011.xls": 2010, "iep_2012.xls": 2011,
               "iep_2013.xls": 2012, "iep_2014.xls": 2013, 
-              "iep_2015.xls": 2014}
+              "iep_2015.xls": 2014, "iep_2016.xls": 2015}
 
 def read_data(file, filetype):
     if filetype == "csv":
