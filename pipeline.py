@@ -121,6 +121,7 @@ def normalize(df, scaler=None, outputinc=False, outputcol=None):
     Returns tuple of:
         Normalized DataFrame and scaler used to normalize DataFrame
     '''
+    columns = df.columns
     if outputinc:
         outcomes = df.loc[:,outputcol]
         df = pd.DataFrame(df.drop(outputcol, axis=1))
@@ -135,7 +136,7 @@ def normalize(df, scaler=None, outputinc=False, outputcol=None):
         normalized_df[outputcol] = outcomes.tolist()
 
     normalized_df.index=df.index
-    normalized_df.columns=df.columns
+    normalized_df.columns= columns
 
     return normalized_df, scaler
 
@@ -250,18 +251,19 @@ def gridsearch(cv, models, grid, outcome, model_time=False):
                 print("Training model:", model_key, "|", params, num)
                 # Create model 
                 model = models[model_key]
-                train_features = train_set.drop(["Year", "School Name_x", outcome], axis=1)
+                train_features = train_set.drop([outcome], axis=1)
                 train_target = train_set.loc[:, outcome]
                 build_classifier(model, train_features, params, train_target,
                                 model_time)
                 # Predict on testing set 
-                target_predict = model.predict(test_set.drop(["Year", "School Name_x", outcome], axis=1))
+                target_predict = model.predict(test_set.drop([outcome], axis=1))
                 target_true = test_set.loc[:, outcome]
                 # Evaluate predictions 
                 r2score = evaluate(target_true, target_predict)
-                results[model_key][num][n] = r2score
-                print(results)
-    # results = pd.DataFrame.from_dict(results, orient="index")
+                results[model_key][num][str(params)] = r2score
+    results = pd.DataFrame.from_dict({(i, j): results[i][j]
+    for i in results.keys() 
+    for j in results[i].keys()}, orient="index")
     # End timer
     stop = datetime.datetime.now()
     print("Time Elapsed:", stop - start)
