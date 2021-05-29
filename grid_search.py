@@ -1,9 +1,9 @@
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-default_split = {0 : [[2011], 2012, 2013],
-             1 : [[2011, 2012], 2013, 2014],
-             2 : [[2011, 2012, 2013], 2014, 2015]}
+default_split = {0 : [[2012], 2013, 2014],
+             1 : [[2012, 2013], 2014, 2015],
+             2 : [[2012, 2013, 2014], 2015, 2016]}
 default_ycol = "5YR Grad Rate"
 default_selection_param = "RMSE"
 
