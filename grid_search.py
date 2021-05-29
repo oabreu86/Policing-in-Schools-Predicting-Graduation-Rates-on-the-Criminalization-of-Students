@@ -130,8 +130,7 @@ def test_model(df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x,
 
 def choose_and_test_model(df, models, p_grid, split = default_split, ycol = default_ycol, selection_param = default_selection_param):
     df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x = train_val_test_split(df, split, ycol)
-    df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x = normalize(df_train_y, df_train_x, df_val_y, 
-                                                                                 df_val_x, df_test_y, df_test_x)
+    df_train_x, df_val_x, df_test_x = normalize(f_train_x,df_val_x, df_test_x)
     avg_val_results = grid_search_time_series_cv(df_train_y, df_train_x, df_val_y, df_val_x, models, p_grid)
     best = select_best_model(avg_val_results, selection_param)
     test_results = test_model(df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x, best, models)
