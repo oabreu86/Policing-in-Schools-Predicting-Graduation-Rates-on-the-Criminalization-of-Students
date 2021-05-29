@@ -3,6 +3,7 @@ from sklearn.preprocessing import PolynomialFeatures
 import pandas as pd
 import numpy as np
 import grid_search
+import pipeline
 
 models = {"LinearRegression" : LinearRegression(),
           "Ridge" : Ridge(),
@@ -22,7 +23,7 @@ def polynomial_transform(df, degree=2, interactions_only=False):
 
 def find_features(df, model_pd):
     dfs = grid_search.train_val_test_split(df)
-    df_train_y, df_train_x, df_val_y, df_val_x, _, df_test_x = dfs
+    df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x = dfs
     df_train_x, df_val_x, df_test_x = grid_search.normalize(df_train_x,
                                                             df_val_x, df_test_x)
     k = len(df_train_x)
@@ -32,11 +33,16 @@ def find_features(df, model_pd):
     for i in range(k):
         df_tv_x[i] = df_tv_x[i].append(df_train_x[i]).append(df_val_x[i])
         df_tv_y[i] = df_tv_y[i].append(df_train_y[i]).append(df_val_y[i])
+
     model = models[model_pd["Model"]]
-    model.set_params(**model_pd["Params"])
+    params = model_pd["Params"]
+    model.set_params(**params)
     model.fit(df_tv_x[k-1], df_tv_y[k-1])
     n = len(model.coef_)
     coefs = pd.DataFrame(np.round(model.coef_.reshape(n, 1), decimals=2),
                          index=df_tv_x[k-1].columns, columns=["coef"])
+    predictions = model.predict(df_test_x)
+    results = pipeline.evaluate(df_test_y, predictions)
     print(model.intercept_)
-    return coefs.sort_values(by="coef",axis=0, ascending=False)
+
+    return coefs.sort_values(by="coef",axis=0, ascending=False), results
