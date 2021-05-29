@@ -5,6 +5,7 @@ default_split = {0 : [[2011], 2012, 2013],
              1 : [[2011, 2012], 2013, 2014],
              2 : [[2011, 2012, 2013], 2014, 2015]}
 default_ycol = "5YR Grad Rate"
+default_selection_param = "RMSE"
 
 def train_val_test_split(df, split = default_split, ycol = default_ycol):
     k = len(split)
@@ -74,7 +75,7 @@ def grid_search_time_series_cv(df_train_y, df_train_x, df_val_y, df_val_x,
     else:
         return avg_val_results
 
-def select_best_model(avg_val_results, selection_param = "RMSE"):
+def select_best_model(avg_val_results, selection_param = default_selection_param):
     best_model = avg_val_results[avg_val_results[selection_param] == avg_val_results[selection_param].min()].iloc[0]
     return best_model
 
@@ -107,4 +108,11 @@ def test_model(df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x,
     test_results = test_results.append(pd.DataFrame([["Average", test_results["RMSE"].mean(),
                                                       test_results["MAE"].mean(), test_results["R^2"].mean()]],
                                                       columns = ["CV", "RMSE", "MAE", "R^2"]))
+    return test_results
+
+def choose_and_test_model(df, models, p_grid, split = default_split, ycol = default_ycol, selection_param = default_selection_param):
+    df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x = train_val_test_split(df, split, ycol)
+    avg_val_results = grid_search_time_series_cv(df_train_y, df_train_x, df_val_y, df_val_x, models, p_grid)
+    best = select_best_model(avg_val_results, selection_param)
+    test_results = test_model(df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x, best, models)
     return test_results
