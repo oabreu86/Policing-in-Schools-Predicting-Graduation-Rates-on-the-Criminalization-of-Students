@@ -1,9 +1,10 @@
 import pandas as pd
+import pipeline
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-default_split = {0 : [[2011], 2012, 2013],
-             1 : [[2011, 2012], 2013, 2014],
-             2 : [[2011, 2012, 2013], 2014, 2015]}
+default_split = {0 : [[2012], 2013, 2014],
+             1 : [[2012, 2013], 2014, 2015],
+             2 : [[2012, 2013, 2014], 2015, 2016]}
 default_ycol = "5YR Grad Rate"
 default_selection_param = "RMSE"
 
@@ -37,6 +38,23 @@ def train_val_test_split(df, split = default_split, ycol = default_ycol):
         df_test_x[i] = df_test[i].drop(columns = [ycol, "Year"])
 
     return df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x
+
+def normalize(df_train_x, df_val_x, df_test_x):
+    k = len(df_train_x)
+    train_norm = []
+    valid_norm = []
+    test_norm = []
+    for n in range(k):
+        df = pd.concat((df_train_x[n], df_val_x[n]))
+        df_norm, scaler = pipeline.normalize(df)
+        tr_norm = df_norm.loc[df_train_x[n].index,:]
+        val_norm = df_norm.loc[df_val_x[n].index,:]
+        te_norm, _ = pipeline.normalize(df_test_x[n], scaler=scaler)
+        train_norm.append(tr_norm)
+        valid_norm.append(val_norm)
+        test_norm.append(te_norm)
+    return train_norm, valid_norm, test_norm
+
 
 def grid_search_time_series_cv(df_train_y, df_train_x, df_val_y, df_val_x,
                                models, p_grid, ret_int_results = False, print = False):
@@ -112,6 +130,8 @@ def test_model(df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x,
 
 def choose_and_test_model(df, models, p_grid, split = default_split, ycol = default_ycol, selection_param = default_selection_param):
     df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x = train_val_test_split(df, split, ycol)
+    df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x = normalize(df_train_y, df_train_x, df_val_y, 
+                                                                                 df_val_x, df_test_y, df_test_x)
     avg_val_results = grid_search_time_series_cv(df_train_y, df_train_x, df_val_y, df_val_x, models, p_grid)
     best = select_best_model(avg_val_results, selection_param)
     test_results = test_model(df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x, best, models)
