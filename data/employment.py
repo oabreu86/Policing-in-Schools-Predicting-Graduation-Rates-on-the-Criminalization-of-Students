@@ -1,6 +1,6 @@
 import pandas as pd
 # To do: Add way to clean and restrict to high schools
-DATA_FILES = {"2009_roster.csv": 2009, "2010_roster.csv" : 2010,
+DATA_FILES = {"employment_2016.xls": 2016, "2010_roster.csv" : 2010,
               "2011_roster.csv": 2011, "2012_roster.csv": 2012,
               "2013_roster.csv": 2013, "2014_roster.xls": 2014}
 
@@ -11,7 +11,7 @@ def read_data(file, filetype):
         df = pd.read_excel(file)
     else:
         return None
-    df["Year"] = DATA_FILES[file]
+    df["Year"] = 2016
     return df
 
 def combine_datafile():
