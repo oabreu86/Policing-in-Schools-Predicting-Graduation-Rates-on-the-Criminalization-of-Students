@@ -2,9 +2,10 @@ import pandas as pd
 import pipeline
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-default_split = {0 : [[2012], 2013, 2014],
-             1 : [[2012, 2013], 2014, 2015],
-             2 : [[2012, 2013, 2014], 2015, 2016]}
+default_split = {0 : [[2012], 2013],
+                 1 : [[2012, 2013], 2014],
+                 2 : [[2012, 2013, 2014], 2015]}
+test_year = 2016
 default_ycol = "5YR Grad Rate"
 default_selection_param = "RMSE"
 
@@ -13,29 +14,25 @@ def train_val_test_split(df, split = default_split, ycol = default_ycol):
 
     df_train = [pd.DataFrame(columns = list(df.columns))]*k
     df_val = [pd.DataFrame(columns = list(df.columns))]*k
-    df_test = [pd.DataFrame(columns = list(df
-    .columns))]*k
+    df_test = df[df["Year"] == test_year]
 
     for i in range(k):
         for train_yr in split[i][0]:
             df_train[i] = df_train[i].append(df[df["Year"] == train_yr])
         df_val[i] = df_val[i].append(df[df["Year"] == split[i][1]])
-        df_test[i] = df_test[i].append(df[df["Year"] == split[i][2]])
 
     df_train_y = [None]*k
     df_train_x = [None]*k
     df_val_y = [None]*k
     df_val_x = [None]*k
-    df_test_y = [None]*k
-    df_test_x = [None]*k
 
     for i in range(k):
         df_train_y[i] = df_train[i][ycol]
         df_train_x[i] = df_train[i].drop(columns = [ycol, "Year"])
         df_val_y[i] = df_val[i][ycol]
         df_val_x[i] = df_val[i].drop(columns = [ycol, "Year"])
-        df_test_y[i] = df_test[i][ycol]
-        df_test_x[i] = df_test[i].drop(columns = [ycol, "Year"])
+        df_test_y = df_test[ycol]
+        df_test_x = df_test.drop(columns = [ycol, "Year"])
 
     return df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x
 
@@ -43,16 +40,15 @@ def normalize(df_train_x, df_val_x, df_test_x):
     k = len(df_train_x)
     train_norm = []
     valid_norm = []
-    test_norm = []
     for n in range(k):
         df = pd.concat((df_train_x[n], df_val_x[n]))
         df_norm, scaler = pipeline.normalize(df)
         tr_norm = df_norm.loc[df_train_x[n].index,:]
         val_norm = df_norm.loc[df_val_x[n].index,:]
-        te_norm, _ = pipeline.normalize(df_test_x[n], scaler=scaler)
         train_norm.append(tr_norm)
         valid_norm.append(val_norm)
-        test_norm.append(te_norm)
+    te_norm, _ = pipeline.normalize(df_test_x, scaler=scaler)
+    test_norm = te_norm
     return train_norm, valid_norm, test_norm
 
 
@@ -99,6 +95,7 @@ def select_best_model(avg_val_results, selection_param = default_selection_param
 
 def select_model(avg_val_results, row):
     chosen_model = avg_val_results.iloc[row]
+    return chosen_model
 
 def test_model(df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x,
                chosen_model, models):
@@ -106,26 +103,15 @@ def test_model(df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x,
     model = models[chosen_model["Model"]]
     model.set_params(**chosen_model["Params"])
 
-    test_results = pd.DataFrame(columns = ["CV", "RMSE", "MAE", "R^2"])
+    df_tv_x = pd.concat([df_train_x[k-1], df_val_x[k-1]])
+    df_tv_y = pd.concat([df_train_y[k-1], df_val_y[k-1]])
 
-    df_tv_x = [pd.DataFrame(columns = list(df_train_x[0].columns))]*k
-    df_tv_y = [pd.Series()]*k
-    for i in range(k):
-        df_tv_x[i] = df_tv_x[i].append(df_train_x[i]).append(df_val_x[i])
-        df_tv_y[i] = df_tv_y[i].append(df_train_y[i]).append(df_val_y[i])
-
-    for i in range(k):
-        fitted_model = model.fit(df_tv_x[i], df_tv_y[i])
-        test_predictions = fitted_model.predict(df_test_x[i])
-        rmse = mean_squared_error(df_test_y[i], test_predictions, squared = False)
-        mae = mean_absolute_error(df_test_y[i], test_predictions)
-        r2 = r2_score(df_test_y[i], test_predictions)
-        test_results = test_results.append(pd.DataFrame([[str(i), rmse, mae, r2]],
-                                                        columns = ["CV", "RMSE", "MAE", "R^2"]))
-
-    test_results = test_results.append(pd.DataFrame([["Average", test_results["RMSE"].mean(),
-                                                      test_results["MAE"].mean(), test_results["R^2"].mean()]],
-                                                      columns = ["CV", "RMSE", "MAE", "R^2"]))
+    fitted_model = model.fit(df_tv_x, df_tv_y)
+    test_predictions = fitted_model.predict(df_test_x)
+    rmse = mean_squared_error(df_test_y, test_predictions, squared = False)
+    mae = mean_absolute_error(df_test_y, test_predictions)
+    r2 = r2_score(df_test_y, test_predictions)
+    test_results = {"RMSE" : rmse, "MAE" : mae, "r^2" :r2}
     return test_results
 
 def choose_and_test_model(df, models, p_grid, split = default_split, ycol = default_ycol, selection_param = default_selection_param):
@@ -134,4 +120,4 @@ def choose_and_test_model(df, models, p_grid, split = default_split, ycol = defa
     avg_val_results = grid_search_time_series_cv(df_train_y, df_train_x, df_val_y, df_val_x, models, p_grid)
     best = select_best_model(avg_val_results, selection_param)
     test_results = test_model(df_train_y, df_train_x, df_val_y, df_val_x, df_test_y, df_test_x, best, models)
-    return test_results
+    return test_results, best
