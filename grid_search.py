@@ -1,6 +1,7 @@
 import pandas as pd
 import pipeline
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import numpy as np
 
 default_split = {0 : [[2012], 2013],
                  1 : [[2012, 2013], 2014],
@@ -72,17 +73,23 @@ def grid_search_time_series_cv(df_train_y, df_train_x, df_val_y, df_val_x,
                 val_results[i] = val_results[i].append(pd.DataFrame([[model_key, params, rmse, mae, r2]],
                                                        columns = ["Model", "Params", "RMSE", "MAE", "R^2"]))
 
-    avg_val_results = pd.DataFrame(columns = ["Model", "Params", "RMSE", "MAE", "R^2"])
+    avg_val_results = pd.DataFrame(columns = ["Model", "Params", "RMSE", "RMSE std dev", "MAE", "R^2"])
     avg_val_results["Model"] = val_results[0]["Model"]
     avg_val_results["Params"] = val_results[0]["Params"]
     avg_val_results["RMSE"] = [0]*len(val_results[0])
+    avg_val_results["RMSE std dev"] = [0]*len(val_results[0])
     avg_val_results["MAE"] = [0]*len(val_results[0])
     avg_val_results["R^2"] = [0]*len(val_results[0])
     for i in range(k):
         avg_val_results["RMSE"] += val_results[i]["RMSE"]/k
         avg_val_results["MAE"] += val_results[i]["MAE"]/k
         avg_val_results["R^2"] += val_results[i]["R^2"]/k
-    avg_val_results = avg_val_results.reset_index()
+    avg_val_results = avg_val_results.reset_index().drop(columns = ["index"])
+    l0 = list(val_results[0]["RMSE"])
+    l1 = list(val_results[1]["RMSE"])
+    l2 = list(val_results[0]["RMSE"])
+    for i in range(len(avg_val_results)):
+        avg_val_results.iloc[i, [3]] = np.std([l0[i], l1[i], l2[i]])
 
     if ret_int_results == True:
         return avg_val_results, val_results
