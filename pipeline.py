@@ -218,8 +218,11 @@ def evaluate(target_test, target_predict):
     
     Returns tuple of Precision, Recall, F1 Score and Accuracy
     '''
-    MSE = metrics.mean_squared_error(target_test, target_predict)
-    return MSE
+    MSE = metrics.mean_squared_error(target_test, target_predict, squared=False)
+    MAE = metrics.mean_absolute_error(target_test, target_predict)
+    R2 = metrics.r2_score(target_test, target_predict)
+
+    return MSE, MAE, R2
 
 
 def gridsearch(cv, models, grid, outcome, model_time=False):
@@ -259,8 +262,8 @@ def gridsearch(cv, models, grid, outcome, model_time=False):
                 target_predict = model.predict(test_set.drop([outcome], axis=1))
                 target_true = test_set.loc[:, outcome]
                 # Evaluate predictions 
-                r2score = evaluate(target_true, target_predict)
-                results[model_key][num][str(params)] = r2score
+                r2scores = evaluate(target_true, target_predict)
+                results[model_key][num][str(params)] = r2scores
     results = pd.DataFrame.from_dict({(i, j): results[i][j]
     for i in results.keys() 
     for j in results[i].keys()}, orient="index")
