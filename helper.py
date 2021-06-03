@@ -1,5 +1,6 @@
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.ensemble import RandomForestRegressor
 import pandas as pd
 import numpy as np
 import grid_search
@@ -8,7 +9,8 @@ import pipeline
 models = {"LinearRegression" : LinearRegression(),
           "Ridge" : Ridge(),
           "Lasso" : Lasso(),
-          "ElasticNet" : ElasticNet()}
+          "ElasticNet" : ElasticNet(),
+          "RandomForestRegressor": RandomForestRegressor()}
 
 def polynomial_transform(df, degree=2, interactions_only=False):
     poly = PolynomialFeatures(degree=degree, include_bias=False, 
@@ -38,11 +40,16 @@ def find_features(df, model_pd):
     params = model_pd["Params"]
     model.set_params(**params)
     model.fit(df_tv_x[k-1], df_tv_y[k-1])
-    n = len(model.coef_)
-    coefs = pd.DataFrame(np.round(model.coef_.reshape(n, 1), decimals=2),
+    if model_pd["Model"] == "RandomForestRegressor":
+        features = model.feature_importances_
+    else:
+        features = model.coef_
+        print(model.intercept_)
+    n = len(features)
+    coefs = pd.DataFrame(np.round(features.reshape(n, 1), decimals=2),
                          index=df_tv_x[k-1].columns, columns=["coef"])
     predictions = model.predict(df_test_x)
     results = pipeline.evaluate(df_test_y, predictions)
-    print(model.intercept_)
+
 
     return coefs.sort_values(by="coef",axis=0, ascending=False), results
